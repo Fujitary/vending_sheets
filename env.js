@@ -8,9 +8,7 @@
 //   window.SHEET_URL = 'https://script.google.com/macros/s/XXXX/exec';
 
 // env.js（タブ名だけ差し替え）
-const SHEET_ID = '10SwDaVpPFzcSapTrjaNZYKXdOAz5mPr7qKz5kOQOFb4';
-const SHEET_TAB = 'Products'; // ← タブ名をここに（例: 'Sheet1' や 'シート1' でもOK）
-
+// env.js
 window.DATA_MODE = 'gviz';
 window.SHEET_URL =
-  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_TAB)}`;
+  'https://docs.google.com/spreadsheets/d/10SwDaVpPFzcSapTrjaNZYKXdOAz5mPr7qKz5kOQOFb4/gviz/tq?tqx=out:json&sheet=Products';
