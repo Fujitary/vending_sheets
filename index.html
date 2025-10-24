@@ -36,40 +36,53 @@
       <div id="error" class="error-box hidden"></div>
     </section>
 
-    <!-- 支払い画面 -->
-    <section id="screen-pay" class="hidden fade">
-      <div class="max-w-md mx-auto text-left">
-        <h2 class="text-3xl font-bold text-center mb-2">お支払い</h2>
-        <p class="text-center text-gray-600 mb-6">QRコードでお支払いください</p>
+ <!-- 支払い画面 -->
+<section id="screen-pay" class="hidden fade">
+  <div class="max-w-md mx-auto text-left">
+    <h2 class="text-3xl font-bold text-center mb-2">お支払い</h2>
+    <p class="text-center text-gray-600 mb-6">QRコードまたはPayPayでお支払いください</p>
 
-        <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-6">
-          <h3 class="text-lg font-semibold mb-3">ご注文内容</h3>
-          <div id="order-summary" class="space-y-2 text-base"></div>
-          <div class="border-t mt-3 pt-3 flex justify-between items-center">
-            <span class="text-lg font-semibold">合計:</span>
-            <span id="final-total" class="text-2xl font-bold text-indigo-600"></span>
-          </div>
-        </div>
-
-        <div class="rounded-xl p-6 mb-6" style="background:linear-gradient(135deg,#3b82f6,#6366f1)">
-          <div class="mb-3 flex justify-center">
-  <img src="https://cdn.brandfetch.io/idWFs_afCw/w/180/h/180/theme/dark/icon.png?c=1dxbfHSJFAPEGdCLU4o5B"
-       alt="PayPay"
-       class="w-24 h-24 object-contain bg-white rounded-lg p-2">
-</div>
-
-          <p class="text-white text-center font-bold text-xl leading-relaxed">
-            冷蔵庫に貼ってある<br>QRコードを読み取って<br>合計金額を入力してお支払いください
-          </p>
-      
-        </div>
-
-        <div class="space-y-3">
-          <button id="btn-paid" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg">支払い完了</button>
-          <button id="btn-back" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 rounded-lg">戻る</button>
-        </div>
+    <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-6">
+      <h3 class="text-lg font-semibold mb-3">ご注文内容</h3>
+      <div id="order-summary" class="space-y-2 text-base"></div>
+      <div class="border-t mt-3 pt-3 flex justify-between items-center">
+        <span class="text-lg font-semibold">合計:</span>
+        <span id="final-total" class="text-2xl font-bold text-indigo-600"></span>
       </div>
-    </section>
+    </div>
+
+    <!-- 支払い案内カード -->
+    <div class="rounded-xl p-6 mb-6" style="background:linear-gradient(135deg,#3b82f6,#6366f1)">
+      <div class="mb-3 flex justify-center">
+        <img src="https://seeklogo.com/images/P/paypay-logo-7A0F1CCAD9-seeklogo.com.png"
+             alt="PayPay"
+             class="h-16 w-auto object-contain drop-shadow-lg">
+      </div>
+      <p class="text-white text-center font-bold text-xl leading-relaxed">
+        冷蔵庫に貼ってある<br>QRコードを読み取るか、<br>下のボタンからPayPayを開いてください
+      </p>
+      <div class="mt-4 text-white/90 bg-white/20 rounded-lg p-3 text-sm text-center">
+        💡 合計金額を入力してお支払いください
+      </div>
+    </div>
+
+    <!-- ✅ PayPay起動ボタン -->
+    <button id="openPayPay" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-lg mb-3">
+      PayPayで支払う
+    </button>
+
+    <!-- 支払い完了ボタンと戻るボタン -->
+    <div class="space-y-3">
+      <button id="btn-paid" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg">
+        支払い完了後タップしてください
+      </button>
+      <button id="btn-back" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 rounded-lg">
+        戻る
+      </button>
+    </div>
+  </div>
+</section>
+
 
     <!-- 完了画面 -->
     <section id="screen-done" class="hidden fade">
@@ -239,5 +252,21 @@
       document.getElementById('btn-new').addEventListener('click', resetApp);
     });
   </script>
+  <script>
+document.getElementById("openPayPay")?.addEventListener("click", function(){
+  // ▼ PayPayアプリを開くURL（受け取りリンクがある場合は差し替え）
+  const paypayURL = "paypay://"; 
+  const fallbackURL = "https://paypay.ne.jp/"; // 未インストール時の遷移先
+
+  const start = Date.now();
+  window.location.href = paypayURL;
+
+  // アプリが開かなければフォールバック
+  setTimeout(() => {
+    if (Date.now() - start < 1500) window.location.href = fallbackURL;
+  }, 1200);
+});
+</script>
+
 </body>
 </html>
