@@ -12,6 +12,7 @@
     .img-box { display: flex; align-items: center; justify-content: center; border-radius: 10px; overflow: hidden; background: #fff; }
     .error-box { background: #fff0f0; color: #c00; border: 1px solid #fbb; padding: 1rem; border-radius: 8px; margin-top: 1rem; }
   </style>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%234f46e5'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-size='36' fill='white'%3E%F0%9F%A5%A4%3C/text%3E%3C/svg%3E">
 </head>
 <body class="p-4">
   <div class="max-w-4xl mx-auto text-center">
@@ -21,69 +22,4 @@
       反映されない時は <kbd>Shift</kbd> + 再読み込み（Macは <kbd>Command</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd> / Winは <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd>）
     </p>
 
-    <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10"></div>
-
-    <div class="bg-white shadow-lg p-6 rounded-xl max-w-xl mx-auto">
-      <div class="flex justify-between text-xl font-semibold mb-4">
-        <span>合計金額:</span><span id="total">¥0</span>
-      </div>
-      <button id="checkout" class="w-full bg-indigo-400 hover:bg-indigo-500 text-white py-4 rounded-xl text-lg font-bold" disabled>
-        会計に進む
-      </button>
-    </div>
-
-    <div id="error" class="error-box hidden"></div>
-  </div>
-
-  <script>
-    const SHEET_URL =
-      'https://docs.google.com/spreadsheets/d/10SwDaVpPFzcSapTrjaNZYKXdOAz5mPr7qKz5kOQOFb4/gviz/tq?tqx=out:json&sheet=Products';
-
-    const grid = document.getElementById("product-grid");
-    const totalEl = document.getElementById("total");
-    const checkoutBtn = document.getElementById("checkout");
-    const errorBox = document.getElementById("error");
-
-    const cart = {};
-
-    async function fetchProducts() {
-      try {
-        const res = await fetch(SHEET_URL, { cache: "no-store" });
-        const text = await res.text();
-        const json = JSON.parse(text.replace(/^.*setResponse\(/, "").replace(/\);?$/, ""));
-        const cols = json.table.cols.map(c => (c.label || "").trim().toLowerCase());
-        const rows = json.table.rows;
-
-        const items = rows.map(r => {
-          const c = i => (r.c[i] && r.c[i].v) || "";
-          return {
-            id: c(cols.indexOf("id")),
-            name: c(cols.indexOf("name")),
-            price: Number(c(cols.indexOf("price")) || 0),
-            image: c(cols.indexOf("image_url")),
-            w: Number(c(cols.indexOf("image_w")) || 120),
-            h: Number(c(cols.indexOf("image_h")) || 160),
-            fit: (c(cols.indexOf("fit")) || "contain"),
-            active: String(c(cols.indexOf("active"))).toLowerCase() === "true",
-            sort: Number(c(cols.indexOf("sort")) || 999)
-          };
-        }).filter(i => i.active && i.name);
-
-        renderProducts(items.sort((a, b) => a.sort - b.sort));
-      } catch (err) {
-        console.error(err);
-        errorBox.classList.remove("hidden");
-        errorBox.innerHTML = `
-          <p class="font-bold">データ取得に失敗しました。</p>
-          <ul class="text-sm mt-2 list-disc text-left mx-auto w-fit">
-            <li>スプレッドシートで「ファイル → ウェブに公開」を実行（対象: Products）</li>
-            <li>右上「共有」→ リンクを知っている全員に閲覧可</li>
-            <li>SHEET_TAB 名が正しいか確認</li>
-            <li>再読み込みは Shift + 再読み込み</li>
-          </ul>
-        `;
-      }
-    }
-
-    function renderProducts(items) {
-      grid.innerHTML = "";
+    <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:
