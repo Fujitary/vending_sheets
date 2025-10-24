@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>飲み物自動販売機</title>
+  <meta name="theme-color" content="#4f46e5" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <style>
+    html, body { height: 100%; }
+    body { box-sizing: border-box; touch-action: manipulation; user-select: none; }
+    .drink-card { transition: all 0.3s ease; }
+    .drink-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
+    .quantity-btn { transition: all 0.2s ease; }
+    .quantity-btn:hover { transform: scale(1.1); }
+    .checkout-animation { animation: slideUp 0.5s ease-out; }
+    @keyframes slideUp { from { opacity:0; transform: translateY(20px);} to { opacity:1; transform: translateY(0);} }
+    .img-box { border-radius: 10px; overflow: hidden; background: #f2f2f2; }
+    .img-box img { width: 100%; height: 100%; display: block; }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-full">
+  <div class="container mx-auto px-4 py-8">
+    <header class="text-center mb-8">
+      <h1 class="text-5xl md:text-4xl font-bold text-gray-800 mb-2">🥤 飲み物自動販売機</h1>
+      <p class="text-lg md:text-base text-gray-600">Googleスプレッドシートでメニュー編集</p>
+    </header>
+
+    <main>
+      <div id="product-selection" class="max-w-5xl mx-auto">
+        <div id="cards" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 mb-8"></div>
+
+        <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-2xl md:text-xl font-semibold text-gray-800">合計金額:</span>
+            <span id="total-amount" class="text-4xl md:text-3xl font-bold text-indigo-600">¥0</span>
+          </div>
+          <button id="checkout-btn" class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold py-5 md:py-4 px-6 rounded-xl text-xl md:text-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled>会計に進む</button>
+        </div>
+      </div>
+
+      <div id="payment-screen" class="max-w-md mx-auto hidden">
+        <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200 checkout-animation">
+          <div class="text-center mb-6">
+            <h2 class="text-3xl md:text-2xl font-bold text-gray-800 mb-2">お支払い</h2>
+            <p class="text-lg md:text-base text-gray-600">QRコードでお支払いください</p>
+          </div>
+
+          <div class="bg-gray-50 rounded-lg p-4 mb-6">
+            <h3 class="text-lg md:text-base font-semibold text-gray-800 mb-3">ご注文内容</h3>
+            <div id="order-summary" class="space-y-2 text-base md:text-sm"></div>
+            <div class="border-t pt-3 mt-3">
+              <div class="flex justify-between items-center">
+                <span class="text-lg md:text-base font-semibold">合計:</span>
+                <span id="final-total" class="text-2xl md:text-xl font-bold text-indigo-600"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg p-6 text-center mb-6">
+            <div class="text-white mb-4">
+              <div class="text-6xl mb-3">🧊</div>
+              <div class="text-2xl md:text-xl font-bold mb-2">冷蔵庫に貼ってある</div>
+              <div class="text-2xl md:text-xl font-bold mb-2">QRコードを読み取って</div>
+              <div class="text-2xl md:text-xl font-bold">お支払いください</div>
+            </div>
+            <div class="bg-white bg-opacity-20 rounded-lg p-3 text-white text-base md:text-sm">💡 冷蔵庫の扉をご確認ください</div>
+          </div>
+
+          <div class="space-y-3">
+            <button id="btn-paid" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 md:py-3 px-6 rounded-lg text-lg md:text-base transition-colors duration-300">支払い完了（デモ）</button>
+            <button id="btn-back" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-4 md:py-3 px-6 rounded-lg text-lg md:text-base transition-colors duration-300">戻る</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="completion-screen" class="max-w-md mx-auto hidden">
+        <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200 text-center checkout-animation">
+          <div class="text-6xl mb-4">✅</div>
+          <h2 class="text-3xl md:text-2xl font-bold text-green-600 mb-4">お支払い完了</h2>
+          <p class="text-lg md:text-base text-gray-600 mb-6">ありがとうございました！<br>商品をお受け取りください。</p>
+          <button id="btn-new" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-4 md:py-3 px-6 rounded-lg text-lg md:text-base transition-colors duration-300">新しい注文</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="env.js"></script>
+  <script>
+    // ===== Config =====
+    // env.js に以下の変数を定義します:
+    //   window.DATA_MODE = 'gviz' | 'json'
+    //   window.SHEET_URL = '...'
+    // gviz: Google Sheets Visualization API JSON
+    // json: 任意のプレーンJSON（Apps Script等）
+
+    const qty = {};
+    let items = [];
+
+    async function fetchFromGviz(url) {
+      const res = await fetch(url, { cache: 'no-cache' });
+      const text = await res.text();
+      // Strip "google.visualization.Query.setResponse(...)" wrapper
+      const jsonStr = text.replace(/^.*setResponse\(/, '').replace(/\);?\s*$/, '');
+      const payload = JSON.parse(jsonStr);
+      const cols = payload.table.cols.map(c => c.label || c.id);
+      const rows = payload.table.rows.map(r => r.c.map(c => c ? c.v : ''));
+
+      // Expect columns: id, name, price, image_url, image_w, image_h, fit, active, sort
+      const idx = Object.fromkeys ? null : null; // placeholder
+      const idxMap = {};
+      ['id','name','price','image_url','image_w','image_h','fit','active','sort'].forEach(k => {
+        idxMap[k] = cols.findIndex(c => c.toLowerCase() === k);
+      });
+
+      function val(row, key){ const i = idxMap[key]; return i >= 0 ? row[i] : ''; }
+
+      const out = rows.map(row => ({
+        id: String(val(row,'id') || '').trim(),
+        name: String(val(row,'name') || '').trim(),
+        price: Number(val(row,'price') || 0),
+        image_url: String(val(row,'image_url') || '').trim(),
+        image_w: Number(val(row,'image_w') || 120),
+        image_h: Number(val(row,'image_h') || 160),
+        fit: (String(val(row,'fit')||'contain').toLowerCase()==='cover'?'cover':'contain'),
+        active: String(val(row,'active')||'TRUE').toString().toLowerCase()!=='false',
+        sort: Number(val(row,'sort')||9999)
+      })).filter(x => x.id && x.name && x.active);
+      out.sort((a,b) => a.sort - b.sort);
+      return out;
+    }
+
+    async function fetchFromJson(url) {
+      const res = await fetch(url, { cache: 'no-cache' });
+      const arr = await res.json();
+      // expected schema: [{id,name,price,image_url,image_w,image_h,fit,active,sort}, ...]
+      return arr.filter(x => x.id && x.name && (x.active ?? true));
+    }
+
+    async function loadItems() {
+      const mode = (window.DATA_MODE || 'gviz').toLowerCase();
+      const url  = window.SHEET_URL;
+      if (!url) throw new Error('env.js の SHEET_URL が未設定です');
+      if (mode === 'json') {
+        items = await fetchFromJson(url);
+      } else {
+        items = await fetchFromGviz(url);
+      }
+    }
+
+    function imgBoxStyle(w, h) {
+      const ww = Math.max(40, Number(w) || 120);
+      const hh = Math.max(40, Number(h) || 160);
+      return `width:${ww}px;height:${hh}px`;
+    }
+
+    function renderCards() {
+      const grid = document.getElementById('cards');
+      grid.innerHTML = '';
+      items.forEach(item => {
+        qty[item.id] = qty[item.id] || 0;
+        const card = document.createElement('div');
+        card.className = 'drink-card bg-white rounded-xl shadow-lg p-6 border border-gray-200';
+        card.innerHTML = `
+          <div class="text-center mb-4">
+            <div class="img-box mx-auto mb-3" style="${imgBoxStyle(item.image_w, item.image_h)}">
+              <img src="${item.image_url || 'assets/placeholder.png'}" alt="${item.name}" style="object-fit:${item.fit || 'contain'}" onerror="this.src='assets/placeholder.png'">
+            </div>
+            <h3 class="text-2xl md:text-xl font-semibold text-gray-800">${item.name}</h3>
+            <p class="text-3xl md:text-2xl font-bold text-indigo-600 mt-2">¥${item.price}</p>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-lg md:text-base text-gray-600">数量:</span>
+            <div class="flex items-center space-x-3">
+              <button class="quantity-btn bg-gray-200 hover:bg-gray-300 text-gray-700 w-10 h-10 md:w-8 md:h-8 rounded-full flex items-center justify-center font-bold text-lg md:text-base" data-id="${item.id}" data-delta="-1">-</button>
+              <span id="${item.id}-qty" class="text-xl md:text-lg font-semibold w-8 text-center">0</span>
+              <button class="quantity-btn bg-indigo-500 hover:bg-indigo-600 text-white w-10 h-10 md:w-8 md:h-8 rounded-full flex items-center justify-center font-bold text-lg md:text-base" data-id="${item.id}" data-delta="1">+</button>
+            </div>
+          </div>`;
+        grid.appendChild(card);
+      });
+
+      grid.querySelectorAll('.quantity-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = e.currentTarget.dataset.id;
+          const delta = parseInt(e.currentTarget.dataset.delta, 10);
+          qty[id] = Math.max(0, (qty[id]||0) + delta);
+          document.getElementById(`${id}-qty`).textContent = String(qty[id]);
+          updateTotal();
+        });
+      });
+    }
+
+    function updateTotal() {
+      const total = items.reduce((sum, it) => sum + (it.price||0) * (qty[it.id]||0), 0);
+      document.getElementById('total-amount').textContent = `¥${total}`;
+      document.getElementById('checkout-btn').disabled = total <= 0;
+    }
+
+    function proceedToPayment() {
+      const orderSummary = document.getElementById('order-summary');
+      const finalTotal = document.getElementById('final-total');
+      orderSummary.innerHTML = '';
+      let total = 0;
+      items.forEach(it => {
+        const count = qty[it.id] || 0;
+        if (count > 0) {
+          const sub = (it.price||0) * count;
+          total += sub;
+          const row = document.createElement('div');
+          row.className = 'flex justify-between';
+          row.innerHTML = `<span>${it.name} × ${count}</span><span>¥${sub}</span>`;
+          orderSummary.appendChild(row);
+        }
+      });
+      finalTotal.textContent = `¥${total}`;
+      document.getElementById('product-selection').classList.add('hidden');
+      document.getElementById('payment-screen').classList.remove('hidden');
+    }
+    function simulatePayment() {
+      document.getElementById('payment-screen').classList.add('hidden');
+      document.getElementById('completion-screen').classList.remove('hidden');
+    }
+    function goBack() {
+      document.getElementById('payment-screen').classList.add('hidden');
+      document.getElementById('product-selection').classList.remove('hidden');
+    }
+    function resetApp() {
+      for (const id of Object.keys(qty)) qty[id] = 0;
+      document.querySelectorAll('[id$="-qty"]').forEach(el => el.textContent = '0');
+      updateTotal();
+      document.getElementById('completion-screen').classList.add('hidden');
+      document.getElementById('product-selection').classList.remove('hidden');
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        await loadItems();
+        renderCards();
+        updateTotal();
+      } catch (e) {
+        document.getElementById('cards').innerHTML = '<div class="text-red-600">データ取得に失敗しました。env.js を確認してください。</div>';
+        console.error(e);
+      }
+      document.getElementById('checkout-btn').addEventListener('click', proceedToPayment);
+      document.getElementById('btn-paid').addEventListener('click', simulatePayment);
+      document.getElementById('btn-back').addEventListener('click', goBack);
+      document.getElementById('btn-new').addEventListener('click', resetApp);
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js');
+      }
+    });
+  </script>
+</body>
+</html>
