@@ -6,61 +6,113 @@
   <title>飲み物自動販売機</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { background: #f3f6ff; font-family: system-ui, sans-serif; }
-    .card { transition: all 0.3s ease; }
-    .card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
-    .img-box { display: flex; align-items: center; justify-content: center; border-radius: 10px; overflow: hidden; background: #fff; }
-    .error-box { background: #fff0f0; color: #c00; border: 1px solid #fbb; padding: 1rem; border-radius: 8px; margin-top: 1rem; }
+    body { background:#f3f6ff; font-family: system-ui, sans-serif; }
+    .card { transition:.3s; }
+    .card:hover { transform: translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.1); }
+    .img-box { display:flex; align-items:center; justify-content:center; border-radius:10px; overflow:hidden; background:#fff; }
+    .error-box { background:#fff0f0; color:#c00; border:1px solid #fbb; padding:1rem; border-radius:8px; margin-top:1rem; }
+    .fade { animation: fade .35s ease-out; } @keyframes fade { from{opacity:.2;transform:translateY(6px)} to{opacity:1;transform:none} }
   </style>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%234f46e5'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='central' text-anchor='middle' font-size='36' fill='white'%3E%F0%9F%A5%A4%3C/text%3E%3C/svg%3E">
 </head>
 <body class="p-4">
-  <div class="max-w-4xl mx-auto text-center">
-    <h1 class="text-4xl font-bold mb-2">飲み物自動販売機</h1>
+  <div class="max-w-5xl mx-auto text-center">
+    <h1 class="text-4xl font-bold mb-2">🥤 飲み物自動販売機</h1>
+    <p class="text-gray-600 mb-4">Googleスプレッドシートでメニュー編集</p>
     <p class="text-sm text-gray-500 mb-6">
-      反映されない時は <kbd>Shift</kbd> + 再読み込み（Macは <kbd>Command</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd> / Winは <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd>）
+      反映されない時は <kbd>Shift</kbd> + 再読み込み（Mac: <kbd>Command</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd> / Win: <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd>）
     </p>
 
-    <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10"></div>
-
-    <div class="bg-white shadow-lg p-6 rounded-xl max-w-xl mx-auto">
-      <div class="flex justify-between text-xl font-semibold mb-4">
-        <span>合計金額:</span><span id="total">¥0</span>
+    <!-- 一覧画面 -->
+    <section id="screen-list" class="fade">
+      <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10"></div>
+      <div class="bg-white shadow-lg p-6 rounded-xl max-w-xl mx-auto">
+        <div class="flex justify-between text-xl font-semibold mb-4">
+          <span>合計金額:</span><span id="total">¥0</span>
+        </div>
+        <button id="checkout" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white py-4 rounded-xl text-lg font-bold disabled:opacity-40" disabled>
+          会計に進む
+        </button>
       </div>
-      <button id="checkout" class="w-full bg-indigo-400 hover:bg-indigo-500 text-white py-4 rounded-xl text-lg font-bold" disabled>
-        会計に進む
-      </button>
-    </div>
+      <div id="error" class="error-box hidden"></div>
+    </section>
 
-    <div id="error" class="error-box hidden"></div>
+    <!-- 支払い画面 -->
+    <section id="screen-pay" class="hidden fade">
+      <div class="max-w-md mx-auto text-left">
+        <h2 class="text-3xl font-bold text-center mb-2">お支払い</h2>
+        <p class="text-center text-gray-600 mb-6">QRコードでお支払いください</p>
+
+        <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-6">
+          <h3 class="text-lg font-semibold mb-3">ご注文内容</h3>
+          <div id="order-summary" class="space-y-2 text-base"></div>
+          <div class="border-t mt-3 pt-3 flex justify-between items-center">
+            <span class="text-lg font-semibold">合計:</span>
+            <span id="final-total" class="text-2xl font-bold text-indigo-600"></span>
+          </div>
+        </div>
+
+        <div class="rounded-xl p-6 mb-6" style="background:linear-gradient(135deg,#3b82f6,#6366f1)">
+          <div class="text-6xl mb-3 text-white text-center">🧊</div>
+          <p class="text-white text-center font-bold text-xl leading-relaxed">
+            冷蔵庫に貼ってある<br>QRコードを読み取って<br>お支払いください
+          </p>
+          <div class="mt-4 text-white/90 bg-white/20 rounded-lg p-3 text-sm text-center">
+            💡 冷蔵庫の扉をご確認ください
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <button id="btn-paid" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg">支払い完了（デモ）</button>
+          <button id="btn-back" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 rounded-lg">戻る</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 完了画面 -->
+    <section id="screen-done" class="hidden fade">
+      <div class="max-w-md mx-auto text-center bg-white border border-gray-200 rounded-xl p-8">
+        <div class="text-6xl mb-4">✅</div>
+        <h2 class="text-3xl font-bold text-green-600 mb-2">お支払い完了</h2>
+        <p class="text-gray-600 mb-6">ありがとうございました！<br>商品をお受け取りください。</p>
+        <button id="btn-new" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 rounded-lg">新しい注文</button>
+      </div>
+    </section>
   </div>
 
   <script>
+    /* ====== 設定 ====== */
     const SHEET_URL =
       'https://docs.google.com/spreadsheets/d/10SwDaVpPFzcSapTrjaNZYKXdOAz5mPr7qKz5kOQOFb4/gviz/tq?tqx=out:json&sheet=Products';
 
+    /* ====== 要素 ====== */
     const grid = document.getElementById("product-grid");
     const totalEl = document.getElementById("total");
     const checkoutBtn = document.getElementById("checkout");
     const errorBox = document.getElementById("error");
-    const cart = {};
 
-    // ✅ Google GVizレスポンスを安全にJSON化
+    const screenList = document.getElementById('screen-list');
+    const screenPay  = document.getElementById('screen-pay');
+    const screenDone = document.getElementById('screen-done');
+    const orderSummary = document.getElementById('order-summary');
+    const finalTotal = document.getElementById('final-total');
+
+    /* ====== 状態 ====== */
+    const cart = {}; // id: { id, name, price, image, w, h, fit, qty }
+
+    /* GVizレスポンスを安全にJSON化 */
     function parseGviz(text) {
-      const clean = text.replace(/^[\uFEFF\s]+/, '');
+      const clean = text.replace(/^[\uFEFF\s]+/,'');
       const start = clean.indexOf('{');
-      const end = clean.lastIndexOf('}');
+      const end   = clean.lastIndexOf('}');
       if (start === -1 || end === -1) throw new Error('GViz JSON not found');
-      const json = clean.slice(start, end + 1);
-      return JSON.parse(json);
+      return JSON.parse(clean.slice(start, end + 1));
     }
 
     async function fetchProducts() {
       try {
-        const res = await fetch(SHEET_URL, { cache: "no-store" });
-        const text = await res.text();
+        const text = await fetch(SHEET_URL, { cache: "no-store" }).then(r => r.text());
         const json = parseGviz(text);
-
         const cols = json.table.cols.map(c => (c.label || "").trim().toLowerCase());
         const rows = json.table.rows;
 
@@ -74,13 +126,12 @@
             w: Number(c(cols.indexOf("image_w")) || 120),
             h: Number(c(cols.indexOf("image_h")) || 160),
             fit: (c(cols.indexOf("fit")) || "contain"),
-            active: String(c(cols.indexOf("active"))).toLowerCase() === "true",
+            active: String(c(cols.indexOf("active"))).toLowerCase() !== "false",
             sort: Number(c(cols.indexOf("sort")) || 999)
           };
         }).filter(i => i.active && i.name);
 
         if (!items.length) throw new Error('No items found');
-
         renderProducts(items.sort((a, b) => a.sort - b.sort));
       } catch (err) {
         console.error(err);
@@ -92,8 +143,7 @@
             <li>右上「共有」→ リンクを知っている全員に閲覧可</li>
             <li>シート名が正しいか確認（Products）</li>
             <li>再読み込みは Shift + 再読み込み</li>
-          </ul>
-        `;
+          </ul>`;
       }
     }
 
@@ -104,37 +154,88 @@
         div.className = "card bg-white rounded-xl p-4 shadow";
         div.innerHTML = `
           <div class="img-box mb-3" style="width:${p.w}px;height:${p.h}px;">
-            <img src="${p.image}" alt="${p.name}" style="width:100%;height:100%;object-fit:${p.fit};" 
-              onerror="this.src='placeholder.png'">
+            <img src="${p.image}" alt="${p.name}" style="width:100%;height:100%;object-fit:${p.fit};" onerror="this.style.opacity=.3">
           </div>
           <h3 class="text-lg font-semibold">${p.name}</h3>
           <p class="text-indigo-600 text-xl font-bold mt-1 mb-2">¥${p.price}</p>
           <div class="flex items-center justify-center space-x-3">
-            <button onclick="addQty('${p.id}',-1)" class="bg-gray-200 hover:bg-gray-300 w-10 h-10 rounded-full font-bold">-</button>
+            <button data-id="${p.id}" data-delta="-1" class="bg-gray-200 hover:bg-gray-300 w-10 h-10 rounded-full font-bold">-</button>
             <span id="${p.id}-qty" class="text-lg font-semibold">0</span>
-            <button onclick="addQty('${p.id}',1)" class="bg-indigo-500 hover:bg-indigo-600 text-white w-10 h-10 rounded-full font-bold">+</button>
-          </div>
-        `;
+            <button data-id="${p.id}" data-delta="1" class="bg-indigo-500 hover:bg-indigo-600 text-white w-10 h-10 rounded-full font-bold">+</button>
+          </div>`;
         grid.appendChild(div);
         cart[p.id] = { ...p, qty: 0 };
       });
-    }
 
-    function addQty(id, delta) {
-      const item = cart[id];
-      if (!item) return;
-      item.qty = Math.max(0, item.qty + delta);
-      document.getElementById(`${id}-qty`).textContent = item.qty;
-      updateTotal();
+      grid.querySelectorAll('button[data-id]').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const id = e.currentTarget.dataset.id;
+          const delta = parseInt(e.currentTarget.dataset.delta, 10);
+          const item = cart[id];
+          item.qty = Math.max(0, item.qty + delta);
+          document.getElementById(`${id}-qty`).textContent = item.qty;
+          updateTotal();
+        });
+      });
     }
 
     function updateTotal() {
-      const total = Object.values(cart).reduce((s, i) => s + i.price * i.qty, 0);
+      const total = Object.values(cart).reduce((s,i)=> s + i.price * i.qty, 0);
       totalEl.textContent = `¥${total}`;
       checkoutBtn.disabled = total === 0;
     }
 
-    fetchProducts();
+    /* 画面遷移 */
+    function show(id) {
+      [screenList, screenPay, screenDone].forEach(el => el.classList.add('hidden'));
+      document.getElementById(id).classList.remove('hidden');
+      document.getElementById(id).classList.add('fade');
+    }
+
+    /* 会計へ */
+    function proceedToPayment() {
+      orderSummary.innerHTML = '';
+      let total = 0;
+      Object.values(cart).forEach(i => {
+        if (i.qty > 0) {
+          const sub = i.price * i.qty;
+          total += sub;
+          const row = document.createElement('div');
+          row.className = 'flex justify-between';
+          row.innerHTML = `<span>${i.name} × ${i.qty}</span><span>¥${sub}</span>`;
+          orderSummary.appendChild(row);
+        }
+      });
+      finalTotal.textContent = `¥${total}`;
+      show('screen-pay');
+    }
+
+    /* 支払い完了（デモ） */
+    function simulatePayment() {
+      show('screen-done');
+    }
+
+    /* 戻る */
+    function goBack() {
+      show('screen-list');
+    }
+
+    /* 新しい注文 */
+    function resetApp() {
+      Object.values(cart).forEach(i => i.qty = 0);
+      document.querySelectorAll('[id$="-qty"]').forEach(el => el.textContent = '0');
+      updateTotal();
+      show('screen-list');
+    }
+
+    /* 起動処理 */
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchProducts();
+      checkoutBtn.addEventListener('click', proceedToPayment);
+      document.getElementById('btn-paid').addEventListener('click', simulatePayment);
+      document.getElementById('btn-back').addEventListener('click', goBack);
+      document.getElementById('btn-new').addEventListener('click', resetApp);
+    });
   </script>
 </body>
 </html>
