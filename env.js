@@ -8,4 +8,5 @@
 //   window.SHEET_URL = 'https://script.google.com/macros/s/XXXX/exec';
 
 window.DATA_MODE = 'gviz';
-window.SHEET_URL = 'https://docs.google.com/spreadsheets/d/2PACX-1vQ54tC0h2JFPr6LXoYX61peD9YhMOR7efeMF-iK3ty6r6LfXoW3ERUEaaWt9BaNX9wklLd_MQJSM-of/gviz/tq?tqx=out:json&sheet=Products';
+window.SHEET_URL =
+  'https://docs.google.com/spreadsheets/d/10SwDaVpPFzcSapTrjaNZYKXdOAz5mPr7qKz5kOQOFb4/gviz/tq?tqx=out:json&sheet=Products';
