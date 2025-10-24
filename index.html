@@ -2,22 +2,23 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>飲み物自動販売機</title>
-  <meta name="theme-color" content="#4f46e5" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#4f46e5" />
   <style>
-    html, body { height: 100%; }
-    body { box-sizing: border-box; touch-action: manipulation; user-select: none; }
-    .drink-card { transition: all 0.3s ease; }
-    .drink-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.15); }
-    .quantity-btn { transition: all 0.2s ease; }
-    .quantity-btn:hover { transform: scale(1.1); }
-    .checkout-animation { animation: slideUp 0.5s ease-out; }
-    @keyframes slideUp { from { opacity:0; transform: translateY(20px);} to { opacity:1; transform: translateY(0);} }
-    .img-box { border-radius: 10px; overflow: hidden; background: #f2f2f2; }
-    .img-box img { width: 100%; height: 100%; display: block; }
+    html,body { height:100%; }
+    body { box-sizing:border-box; touch-action:manipulation; user-select:none; }
+    .drink-card { transition: all .3s ease; }
+    .drink-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,.15); }
+    .quantity-btn { transition: all .2s ease; }
+    .quantity-btn:hover { transform: scale(1.08); }
+    .checkout-animation { animation: slideUp .5s ease-out; }
+    @keyframes slideUp { from{opacity:0; transform:translateY(20px)} to{opacity:1; transform:translateY(0)} }
+    .img-box { border-radius: 10px; overflow: hidden; background:#f2f2f2; }
+    .img-box img { width:100%; height:100%; display:block; }
+    .hint { font-size:.9rem }
+    .kbd { padding:.1rem .4rem; border:1px solid #e5e7eb; border-bottom-width:2px; border-radius:.3rem; background:#fff; }
   </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-full">
@@ -25,6 +26,9 @@
     <header class="text-center mb-8">
       <h1 class="text-5xl md:text-4xl font-bold text-gray-800 mb-2">🥤 飲み物自動販売機</h1>
       <p class="text-lg md:text-base text-gray-600">Googleスプレッドシートでメニュー編集</p>
+      <p class="hint text-gray-500 mt-2">
+        反映されない時は <span class="kbd">Shift</span> + 再読み込み（Macは <span class="kbd">Command</span> + <span class="kbd">Shift</span> + <span class="kbd">R</span> / Winは <span class="kbd">Ctrl</span> + <span class="kbd">Shift</span> + <span class="kbd">R</span>）
+      </p>
     </header>
 
     <main>
@@ -36,7 +40,9 @@
             <span class="text-2xl md:text-xl font-semibold text-gray-800">合計金額:</span>
             <span id="total-amount" class="text-4xl md:text-3xl font-bold text-indigo-600">¥0</span>
           </div>
-          <button id="checkout-btn" class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold py-5 md:py-4 px-6 rounded-xl text-xl md:text-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled>会計に進む</button>
+          <button id="checkout-btn" class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold py-5 md:py-4 px-6 rounded-xl text-xl md:text-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            会計に進む
+          </button>
         </div>
       </div>
 
@@ -83,70 +89,80 @@
           <button id="btn-new" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-4 md:py-3 px-6 rounded-lg text-lg md:text-base transition-colors duration-300">新しい注文</button>
         </div>
       </div>
+
+      <div id="error" class="max-w-xl mx-auto mt-8 hidden">
+        <div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg text-sm">
+          <div class="font-bold mb-1">データ取得に失敗しました。</div>
+          <ul class="list-disc ml-5 space-y-1">
+            <li>スプレッドシートで「ファイル → ウェブに公開」を実行（対象: SHEET_TAB）</li>
+            <li>右上「共有」→ リンクを知っている全員：閲覧可</li>
+            <li>SHEET_TAB 名が正しいか（大文字小文字も含め）</li>
+            <li>再読み込みは <span class="kbd">Shift</span> + 再読み込み</li>
+          </ul>
+        </div>
+      </div>
     </main>
   </div>
 
-  <script src="env.js"></script>
   <script>
-    // ===== Config =====
-    // env.js に以下の変数を定義します:
-    //   window.DATA_MODE = 'gviz' | 'json'
-    //   window.SHEET_URL = '...'
-    // gviz: Google Sheets Visualization API JSON
-    // json: 任意のプレーンJSON（Apps Script等）
+    // ======== ここだけ設定すればOK ========
+    const SHEET_ID  = '10SwDaVpPFzcSapTrjaNZYKXdOAz5mPr7qKz5kOQOFb4'; // ← あなたのID
+    const SHEET_TAB = 'Products'; // ← 使用するタブ名（例: 'Products' / 'Sheet1' / 'シート1'）
+    // =====================================
+
+    const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_TAB)}`;
+
+    // 画像プレースホルダー（埋め込みSVG）
+    const PLACEHOLDER =
+      'data:image/svg+xml;charset=UTF-8,' +
+      encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320">
+        <rect width="100%" height="100%" fill="#e6e6e6"/>
+        <rect x="60" y="70" width="120" height="180" rx="10" ry="10" fill="#cccccc" stroke="#b5b5b5" stroke-width="4"/>
+        <rect x="105" y="250" width="30" height="40" fill="#b5b5b5"/>
+      </svg>`);
 
     const qty = {};
     let items = [];
 
+    // gviz → 配列に変換（列名は大小・空白を無視して突き合わせ）
     async function fetchFromGviz(url) {
       const res = await fetch(url, { cache: 'no-cache' });
       const text = await res.text();
-      // Strip "google.visualization.Query.setResponse(...)" wrapper
       const jsonStr = text.replace(/^.*setResponse\(/, '').replace(/\);?\s*$/, '');
       const payload = JSON.parse(jsonStr);
-      const cols = payload.table.cols.map(c => c.label || c.id);
-      const rows = payload.table.rows.map(r => r.c.map(c => c ? c.v : ''));
 
-      // Expect columns: id, name, price, image_url, image_w, image_h, fit, active, sort
-      const idx = Object.fromkeys ? null : null; // placeholder
-      const idxMap = {};
-      ['id','name','price','image_url','image_w','image_h','fit','active','sort'].forEach(k => {
-        idxMap[k] = cols.findIndex(c => c.toLowerCase() === k);
-      });
+      const norm = s => String(s || '').trim().toLowerCase().replace(/\s+/g,'');
+      const cols = (payload.table.cols || []).map(c => norm(c.label || c.id));
+      const need = ['id','name','price','image_url','image_w','image_h','fit','active','sort'].map(norm);
+      const idx = {}; need.forEach(k => idx[k] = cols.indexOf(k));
 
-      function val(row, key){ const i = idxMap[key]; return i >= 0 ? row[i] : ''; }
+      const rows = payload.table.rows || [];
+      const out = rows.map(r => {
+        const c = r.c || [];
+        const val = k => {
+          const i = idx[k];
+          const cell = (i >= 0 ? c[i] : null);
+          return cell && cell.v != null ? cell.v : '';
+        };
+        const activeRaw = String(val('active')).toLowerCase();
+        const isActive = !(['false','0','no','off'].includes(activeRaw)) && activeRaw !== '';
 
-      const out = rows.map(row => ({
-        id: String(val(row,'id') || '').trim(),
-        name: String(val(row,'name') || '').trim(),
-        price: Number(val(row,'price') || 0),
-        image_url: String(val(row,'image_url') || '').trim(),
-        image_w: Number(val(row,'image_w') || 120),
-        image_h: Number(val(row,'image_h') || 160),
-        fit: (String(val(row,'fit')||'contain').toLowerCase()==='cover'?'cover':'contain'),
-        active: String(val(row,'active')||'TRUE').toString().toLowerCase()!=='false',
-        sort: Number(val(row,'sort')||9999)
-      })).filter(x => x.id && x.name && x.active);
-      out.sort((a,b) => a.sort - b.sort);
+        return {
+          id: String(val('id')).trim(),
+          name: String(val('name')).trim(),
+          price: Number(val('price') || 0),
+          image_url: String(val('image_url')).trim(),
+          image_w: Number(val('image_w') || 120),
+          image_h: Number(val('image_h') || 160),
+          fit: (String(val('fit')).toLowerCase() === 'cover') ? 'cover' : 'contain',
+          active: isActive,
+          sort: Number(val('sort') || 9999)
+        };
+      })
+      .filter(x => x.id && x.name && x.active)
+      .sort((a,b) => a.sort - b.sort);
+
       return out;
-    }
-
-    async function fetchFromJson(url) {
-      const res = await fetch(url, { cache: 'no-cache' });
-      const arr = await res.json();
-      // expected schema: [{id,name,price,image_url,image_w,image_h,fit,active,sort}, ...]
-      return arr.filter(x => x.id && x.name && (x.active ?? true));
-    }
-
-    async function loadItems() {
-      const mode = (window.DATA_MODE || 'gviz').toLowerCase();
-      const url  = window.SHEET_URL;
-      if (!url) throw new Error('env.js の SHEET_URL が未設定です');
-      if (mode === 'json') {
-        items = await fetchFromJson(url);
-      } else {
-        items = await fetchFromGviz(url);
-      }
     }
 
     function imgBoxStyle(w, h) {
@@ -158,17 +174,20 @@
     function renderCards() {
       const grid = document.getElementById('cards');
       grid.innerHTML = '';
+
       items.forEach(item => {
         qty[item.id] = qty[item.id] || 0;
+
         const card = document.createElement('div');
         card.className = 'drink-card bg-white rounded-xl shadow-lg p-6 border border-gray-200';
+
         card.innerHTML = `
           <div class="text-center mb-4">
             <div class="img-box mx-auto mb-3" style="${imgBoxStyle(item.image_w, item.image_h)}">
-              <img src="${item.image_url || 'assets/placeholder.png'}" alt="${item.name}" style="object-fit:${item.fit || 'contain'}" onerror="this.src='assets/placeholder.png'">
+              <img src="${item.image_url || PLACEHOLDER}" alt="${item.name}" style="object-fit:${item.fit || 'contain'}" onerror="this.src='${PLACEHOLDER}'">
             </div>
             <h3 class="text-2xl md:text-xl font-semibold text-gray-800">${item.name}</h3>
-            <p class="text-3xl md:text-2xl font-bold text-indigo-600 mt-2">¥${item.price}</p>
+            <p class="text-3xl md:text-2xl font-bold text-indigo-600 mt-2">¥${Number(item.price)||0}</p>
           </div>
           <div class="flex items-center justify-between">
             <span class="text-lg md:text-base text-gray-600">数量:</span>
@@ -177,7 +196,9 @@
               <span id="${item.id}-qty" class="text-xl md:text-lg font-semibold w-8 text-center">0</span>
               <button class="quantity-btn bg-indigo-500 hover:bg-indigo-600 text-white w-10 h-10 md:w-8 md:h-8 rounded-full flex items-center justify-center font-bold text-lg md:text-base" data-id="${item.id}" data-delta="1">+</button>
             </div>
-          </div>`;
+          </div>
+        `;
+
         grid.appendChild(card);
       });
 
@@ -193,7 +214,7 @@
     }
 
     function updateTotal() {
-      const total = items.reduce((sum, it) => sum + (it.price||0) * (qty[it.id]||0), 0);
+      const total = items.reduce((sum, it) => sum + (Number(it.price)||0) * (qty[it.id]||0), 0);
       document.getElementById('total-amount').textContent = `¥${total}`;
       document.getElementById('checkout-btn').disabled = total <= 0;
     }
@@ -203,10 +224,11 @@
       const finalTotal = document.getElementById('final-total');
       orderSummary.innerHTML = '';
       let total = 0;
+
       items.forEach(it => {
         const count = qty[it.id] || 0;
         if (count > 0) {
-          const sub = (it.price||0) * count;
+          const sub = (Number(it.price)||0) * count;
           total += sub;
           const row = document.createElement('div');
           row.className = 'flex justify-between';
@@ -214,18 +236,22 @@
           orderSummary.appendChild(row);
         }
       });
+
       finalTotal.textContent = `¥${total}`;
       document.getElementById('product-selection').classList.add('hidden');
       document.getElementById('payment-screen').classList.remove('hidden');
     }
+
     function simulatePayment() {
       document.getElementById('payment-screen').classList.add('hidden');
       document.getElementById('completion-screen').classList.remove('hidden');
     }
+
     function goBack() {
       document.getElementById('payment-screen').classList.add('hidden');
       document.getElementById('product-selection').classList.remove('hidden');
     }
+
     function resetApp() {
       for (const id of Object.keys(qty)) qty[id] = 0;
       document.querySelectorAll('[id$="-qty"]').forEach(el => el.textContent = '0');
@@ -234,22 +260,21 @@
       document.getElementById('product-selection').classList.remove('hidden');
     }
 
+    // イベント
     document.addEventListener('DOMContentLoaded', async () => {
-      try {
-        await loadItems();
-        renderCards();
-        updateTotal();
-      } catch (e) {
-        document.getElementById('cards').innerHTML = '<div class="text-red-600">データ取得に失敗しました。env.js を確認してください。</div>';
-        console.error(e);
-      }
       document.getElementById('checkout-btn').addEventListener('click', proceedToPayment);
       document.getElementById('btn-paid').addEventListener('click', simulatePayment);
       document.getElementById('btn-back').addEventListener('click', goBack);
       document.getElementById('btn-new').addEventListener('click', resetApp);
 
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('service-worker.js');
+      try {
+        items = await fetchFromGviz(GVIZ_URL);
+        if (!items.length) throw new Error('no items');
+        renderCards();
+        updateTotal();
+      } catch (e) {
+        console.error('GVIZ_ERROR', e);
+        document.getElementById('error').classList.remove('hidden');
       }
     });
   </script>
