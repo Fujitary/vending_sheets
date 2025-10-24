@@ -2,281 +2,88 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>飲み物自動販売機</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <meta name="theme-color" content="#4f46e5" />
   <style>
-    html,body { height:100%; }
-    body { box-sizing:border-box; touch-action:manipulation; user-select:none; }
-    .drink-card { transition: all .3s ease; }
-    .drink-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,.15); }
-    .quantity-btn { transition: all .2s ease; }
-    .quantity-btn:hover { transform: scale(1.08); }
-    .checkout-animation { animation: slideUp .5s ease-out; }
-    @keyframes slideUp { from{opacity:0; transform:translateY(20px)} to{opacity:1; transform:translateY(0)} }
-    .img-box { border-radius: 10px; overflow: hidden; background:#f2f2f2; }
-    .img-box img { width:100%; height:100%; display:block; }
-    .hint { font-size:.9rem }
-    .kbd { padding:.1rem .4rem; border:1px solid #e5e7eb; border-bottom-width:2px; border-radius:.3rem; background:#fff; }
+    body { background: #f3f6ff; font-family: system-ui, sans-serif; }
+    .card { transition: all 0.3s ease; }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+    .img-box { display: flex; align-items: center; justify-content: center; border-radius: 10px; overflow: hidden; background: #fff; }
+    .error-box { background: #fff0f0; color: #c00; border: 1px solid #fbb; padding: 1rem; border-radius: 8px; margin-top: 1rem; }
   </style>
 </head>
-<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-full">
-  <div class="container mx-auto px-4 py-8">
-    <header class="text-center mb-8">
-      <h1 class="text-5xl md:text-4xl font-bold text-gray-800 mb-2">🥤 飲み物自動販売機</h1>
-      <p class="text-lg md:text-base text-gray-600">Googleスプレッドシートでメニュー編集</p>
-      <p class="hint text-gray-500 mt-2">
-        反映されない時は <span class="kbd">Shift</span> + 再読み込み（Macは <span class="kbd">Command</span> + <span class="kbd">Shift</span> + <span class="kbd">R</span> / Winは <span class="kbd">Ctrl</span> + <span class="kbd">Shift</span> + <span class="kbd">R</span>）
-      </p>
-    </header>
+<body class="p-4">
+  <div class="max-w-4xl mx-auto text-center">
+    <h1 class="text-4xl font-bold mb-2">🥤 飲み物自動販売機</h1>
+    <p class="text-gray-600 mb-4">Googleスプレッドシートでメニュー編集</p>
+    <p class="text-sm text-gray-500 mb-6">
+      反映されない時は <kbd>Shift</kbd> + 再読み込み（Macは <kbd>Command</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd> / Winは <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd>）
+    </p>
 
-    <main>
-      <div id="product-selection" class="max-w-5xl mx-auto">
-        <div id="cards" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 mb-8"></div>
+    <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10"></div>
 
-        <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
-          <div class="flex items-center justify-between mb-4">
-            <span class="text-2xl md:text-xl font-semibold text-gray-800">合計金額:</span>
-            <span id="total-amount" class="text-4xl md:text-3xl font-bold text-indigo-600">¥0</span>
-          </div>
-          <button id="checkout-btn" class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold py-5 md:py-4 px-6 rounded-xl text-xl md:text-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-            会計に進む
-          </button>
-        </div>
+    <div class="bg-white shadow-lg p-6 rounded-xl max-w-xl mx-auto">
+      <div class="flex justify-between text-xl font-semibold mb-4">
+        <span>合計金額:</span><span id="total">¥0</span>
       </div>
+      <button id="checkout" class="w-full bg-indigo-400 hover:bg-indigo-500 text-white py-4 rounded-xl text-lg font-bold" disabled>
+        会計に進む
+      </button>
+    </div>
 
-      <div id="payment-screen" class="max-w-md mx-auto hidden">
-        <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200 checkout-animation">
-          <div class="text-center mb-6">
-            <h2 class="text-3xl md:text-2xl font-bold text-gray-800 mb-2">お支払い</h2>
-            <p class="text-lg md:text-base text-gray-600">QRコードでお支払いください</p>
-          </div>
-
-          <div class="bg-gray-50 rounded-lg p-4 mb-6">
-            <h3 class="text-lg md:text-base font-semibold text-gray-800 mb-3">ご注文内容</h3>
-            <div id="order-summary" class="space-y-2 text-base md:text-sm"></div>
-            <div class="border-t pt-3 mt-3">
-              <div class="flex justify-between items-center">
-                <span class="text-lg md:text-base font-semibold">合計:</span>
-                <span id="final-total" class="text-2xl md:text-xl font-bold text-indigo-600"></span>
-              </div>
-            </div>
-          </div>
-
-          <div class="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg p-6 text-center mb-6">
-            <div class="text-white mb-4">
-              <div class="text-6xl mb-3">🧊</div>
-              <div class="text-2xl md:text-xl font-bold mb-2">冷蔵庫に貼ってある</div>
-              <div class="text-2xl md:text-xl font-bold mb-2">QRコードを読み取って</div>
-              <div class="text-2xl md:text-xl font-bold">お支払いください</div>
-            </div>
-            <div class="bg-white bg-opacity-20 rounded-lg p-3 text-white text-base md:text-sm">💡 冷蔵庫の扉をご確認ください</div>
-          </div>
-
-          <div class="space-y-3">
-            <button id="btn-paid" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 md:py-3 px-6 rounded-lg text-lg md:text-base transition-colors duration-300">支払い完了（デモ）</button>
-            <button id="btn-back" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-4 md:py-3 px-6 rounded-lg text-lg md:text-base transition-colors duration-300">戻る</button>
-          </div>
-        </div>
-      </div>
-
-      <div id="completion-screen" class="max-w-md mx-auto hidden">
-        <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200 text-center checkout-animation">
-          <div class="text-6xl mb-4">✅</div>
-          <h2 class="text-3xl md:text-2xl font-bold text-green-600 mb-4">お支払い完了</h2>
-          <p class="text-lg md:text-base text-gray-600 mb-6">ありがとうございました！<br>商品をお受け取りください。</p>
-          <button id="btn-new" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-4 md:py-3 px-6 rounded-lg text-lg md:text-base transition-colors duration-300">新しい注文</button>
-        </div>
-      </div>
-
-      <div id="error" class="max-w-xl mx-auto mt-8 hidden">
-        <div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg text-sm">
-          <div class="font-bold mb-1">データ取得に失敗しました。</div>
-          <ul class="list-disc ml-5 space-y-1">
-            <li>スプレッドシートで「ファイル → ウェブに公開」を実行（対象: SHEET_TAB）</li>
-            <li>右上「共有」→ リンクを知っている全員：閲覧可</li>
-            <li>SHEET_TAB 名が正しいか（大文字小文字も含め）</li>
-            <li>再読み込みは <span class="kbd">Shift</span> + 再読み込み</li>
-          </ul>
-        </div>
-      </div>
-    </main>
+    <div id="error" class="error-box hidden"></div>
   </div>
 
   <script>
-    // ======== ここだけ設定すればOK ========
-    const SHEET_ID  = '10SwDaVpPFzcSapTrjaNZYKXdOAz5mPr7qKz5kOQOFb4'; // ← あなたのID
-    const SHEET_TAB = 'Products'; // ← 使用するタブ名（例: 'Products' / 'Sheet1' / 'シート1'）
-    // =====================================
+    const SHEET_URL =
+      'https://docs.google.com/spreadsheets/d/10SwDaVpPFzcSapTrjaNZYKXdOAz5mPr7qKz5kOQOFb4/gviz/tq?tqx=out:json&sheet=Products';
 
-    const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_TAB)}`;
+    const grid = document.getElementById("product-grid");
+    const totalEl = document.getElementById("total");
+    const checkoutBtn = document.getElementById("checkout");
+    const errorBox = document.getElementById("error");
 
-    // 画像プレースホルダー（埋め込みSVG）
-    const PLACEHOLDER =
-      'data:image/svg+xml;charset=UTF-8,' +
-      encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320">
-        <rect width="100%" height="100%" fill="#e6e6e6"/>
-        <rect x="60" y="70" width="120" height="180" rx="10" ry="10" fill="#cccccc" stroke="#b5b5b5" stroke-width="4"/>
-        <rect x="105" y="250" width="30" height="40" fill="#b5b5b5"/>
-      </svg>`);
+    const cart = {};
 
-    const qty = {};
-    let items = [];
-
-    // gviz → 配列に変換（列名は大小・空白を無視して突き合わせ）
-    async function fetchFromGviz(url) {
-      const res = await fetch(url, { cache: 'no-cache' });
-      const text = await res.text();
-      const jsonStr = text.replace(/^.*setResponse\(/, '').replace(/\);?\s*$/, '');
-      const payload = JSON.parse(jsonStr);
-
-      const norm = s => String(s || '').trim().toLowerCase().replace(/\s+/g,'');
-      const cols = (payload.table.cols || []).map(c => norm(c.label || c.id));
-      const need = ['id','name','price','image_url','image_w','image_h','fit','active','sort'].map(norm);
-      const idx = {}; need.forEach(k => idx[k] = cols.indexOf(k));
-
-      const rows = payload.table.rows || [];
-      const out = rows.map(r => {
-        const c = r.c || [];
-        const val = k => {
-          const i = idx[k];
-          const cell = (i >= 0 ? c[i] : null);
-          return cell && cell.v != null ? cell.v : '';
-        };
-        const activeRaw = String(val('active')).toLowerCase();
-        const isActive = !(['false','0','no','off'].includes(activeRaw)) && activeRaw !== '';
-
-        return {
-          id: String(val('id')).trim(),
-          name: String(val('name')).trim(),
-          price: Number(val('price') || 0),
-          image_url: String(val('image_url')).trim(),
-          image_w: Number(val('image_w') || 120),
-          image_h: Number(val('image_h') || 160),
-          fit: (String(val('fit')).toLowerCase() === 'cover') ? 'cover' : 'contain',
-          active: isActive,
-          sort: Number(val('sort') || 9999)
-        };
-      })
-      .filter(x => x.id && x.name && x.active)
-      .sort((a,b) => a.sort - b.sort);
-
-      return out;
-    }
-
-    function imgBoxStyle(w, h) {
-      const ww = Math.max(40, Number(w) || 120);
-      const hh = Math.max(40, Number(h) || 160);
-      return `width:${ww}px;height:${hh}px`;
-    }
-
-    function renderCards() {
-      const grid = document.getElementById('cards');
-      grid.innerHTML = '';
-
-      items.forEach(item => {
-        qty[item.id] = qty[item.id] || 0;
-
-        const card = document.createElement('div');
-        card.className = 'drink-card bg-white rounded-xl shadow-lg p-6 border border-gray-200';
-
-        card.innerHTML = `
-          <div class="text-center mb-4">
-            <div class="img-box mx-auto mb-3" style="${imgBoxStyle(item.image_w, item.image_h)}">
-              <img src="${item.image_url || PLACEHOLDER}" alt="${item.name}" style="object-fit:${item.fit || 'contain'}" onerror="this.src='${PLACEHOLDER}'">
-            </div>
-            <h3 class="text-2xl md:text-xl font-semibold text-gray-800">${item.name}</h3>
-            <p class="text-3xl md:text-2xl font-bold text-indigo-600 mt-2">¥${Number(item.price)||0}</p>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-lg md:text-base text-gray-600">数量:</span>
-            <div class="flex items-center space-x-3">
-              <button class="quantity-btn bg-gray-200 hover:bg-gray-300 text-gray-700 w-10 h-10 md:w-8 md:h-8 rounded-full flex items-center justify-center font-bold text-lg md:text-base" data-id="${item.id}" data-delta="-1">-</button>
-              <span id="${item.id}-qty" class="text-xl md:text-lg font-semibold w-8 text-center">0</span>
-              <button class="quantity-btn bg-indigo-500 hover:bg-indigo-600 text-white w-10 h-10 md:w-8 md:h-8 rounded-full flex items-center justify-center font-bold text-lg md:text-base" data-id="${item.id}" data-delta="1">+</button>
-            </div>
-          </div>
-        `;
-
-        grid.appendChild(card);
-      });
-
-      grid.querySelectorAll('.quantity-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const id = e.currentTarget.dataset.id;
-          const delta = parseInt(e.currentTarget.dataset.delta, 10);
-          qty[id] = Math.max(0, (qty[id]||0) + delta);
-          document.getElementById(`${id}-qty`).textContent = String(qty[id]);
-          updateTotal();
-        });
-      });
-    }
-
-    function updateTotal() {
-      const total = items.reduce((sum, it) => sum + (Number(it.price)||0) * (qty[it.id]||0), 0);
-      document.getElementById('total-amount').textContent = `¥${total}`;
-      document.getElementById('checkout-btn').disabled = total <= 0;
-    }
-
-    function proceedToPayment() {
-      const orderSummary = document.getElementById('order-summary');
-      const finalTotal = document.getElementById('final-total');
-      orderSummary.innerHTML = '';
-      let total = 0;
-
-      items.forEach(it => {
-        const count = qty[it.id] || 0;
-        if (count > 0) {
-          const sub = (Number(it.price)||0) * count;
-          total += sub;
-          const row = document.createElement('div');
-          row.className = 'flex justify-between';
-          row.innerHTML = `<span>${it.name} × ${count}</span><span>¥${sub}</span>`;
-          orderSummary.appendChild(row);
-        }
-      });
-
-      finalTotal.textContent = `¥${total}`;
-      document.getElementById('product-selection').classList.add('hidden');
-      document.getElementById('payment-screen').classList.remove('hidden');
-    }
-
-    function simulatePayment() {
-      document.getElementById('payment-screen').classList.add('hidden');
-      document.getElementById('completion-screen').classList.remove('hidden');
-    }
-
-    function goBack() {
-      document.getElementById('payment-screen').classList.add('hidden');
-      document.getElementById('product-selection').classList.remove('hidden');
-    }
-
-    function resetApp() {
-      for (const id of Object.keys(qty)) qty[id] = 0;
-      document.querySelectorAll('[id$="-qty"]').forEach(el => el.textContent = '0');
-      updateTotal();
-      document.getElementById('completion-screen').classList.add('hidden');
-      document.getElementById('product-selection').classList.remove('hidden');
-    }
-
-    // イベント
-    document.addEventListener('DOMContentLoaded', async () => {
-      document.getElementById('checkout-btn').addEventListener('click', proceedToPayment);
-      document.getElementById('btn-paid').addEventListener('click', simulatePayment);
-      document.getElementById('btn-back').addEventListener('click', goBack);
-      document.getElementById('btn-new').addEventListener('click', resetApp);
-
+    async function fetchProducts() {
       try {
-        items = await fetchFromGviz(GVIZ_URL);
-        if (!items.length) throw new Error('no items');
-        renderCards();
-        updateTotal();
-      } catch (e) {
-        console.error('GVIZ_ERROR', e);
-        document.getElementById('error').classList.remove('hidden');
+        const res = await fetch(SHEET_URL, { cache: "no-store" });
+        const text = await res.text();
+        const json = JSON.parse(text.replace(/^.*setResponse\(/, "").replace(/\);?$/, ""));
+        const cols = json.table.cols.map(c => (c.label || "").trim().toLowerCase());
+        const rows = json.table.rows;
+
+        const items = rows.map(r => {
+          const c = i => (r.c[i] && r.c[i].v) || "";
+          return {
+            id: c(cols.indexOf("id")),
+            name: c(cols.indexOf("name")),
+            price: Number(c(cols.indexOf("price")) || 0),
+            image: c(cols.indexOf("image_url")),
+            w: Number(c(cols.indexOf("image_w")) || 120),
+            h: Number(c(cols.indexOf("image_h")) || 160),
+            fit: (c(cols.indexOf("fit")) || "contain"),
+            active: String(c(cols.indexOf("active"))).toLowerCase() === "true",
+            sort: Number(c(cols.indexOf("sort")) || 999)
+          };
+        }).filter(i => i.active && i.name);
+
+        renderProducts(items.sort((a, b) => a.sort - b.sort));
+      } catch (err) {
+        console.error(err);
+        errorBox.classList.remove("hidden");
+        errorBox.innerHTML = `
+          <p class="font-bold">データ取得に失敗しました。</p>
+          <ul class="text-sm mt-2 list-disc text-left mx-auto w-fit">
+            <li>スプレッドシートで「ファイル → ウェブに公開」を実行（対象: Products）</li>
+            <li>右上「共有」→ リンクを知っている全員に閲覧可</li>
+            <li>SHEET_TAB 名が正しいか確認</li>
+            <li>再読み込みは Shift + 再読み込み</li>
+          </ul>
+        `;
       }
-    });
-  </script>
-</body>
-</html>
+    }
+
+    function renderProducts(items) {
+      grid.innerHTML = "";
