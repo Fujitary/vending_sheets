@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>飲み物自動販売機</title>
+  <title>自動販売機</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body { background:#f3f6ff; font-family: system-ui, sans-serif; }
@@ -17,7 +17,7 @@
 </head>
 <body class="p-4">
   <div class="max-w-5xl mx-auto text-center">
-    <h1 class="text-4xl font-bold mb-2">飲み物自動販売機</h1>
+    <h1 class="text-4xl font-bold mb-2">無人販売機</h1>
     <p class="text-sm text-gray-500 mb-6">
       反映されない時は <kbd>Shift</kbd> + 再読み込み（Mac: <kbd>Command</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd> / Win: <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd>）
     </p>
@@ -40,7 +40,6 @@
 <section id="screen-pay" class="hidden fade">
   <div class="max-w-md mx-auto text-left">
     <h2 class="text-3xl font-bold text-center mb-2">お支払い</h2>
-    <p class="text-center text-gray-600 mb-6">QRコードまたはPayPayでお支払いください</p>
 
     <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-6">
       <h3 class="text-lg font-semibold mb-3">ご注文内容</h3>
@@ -68,7 +67,10 @@
 
     <!-- ✅ PayPay起動ボタン -->
     <button id="openPayPay" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-lg mb-3">
-      PayPayで支払う
+      PayPayで支払う<p class="text-xs text-gray-500 text-center -mt-2 mb-3">
+  タップするとPayPayアプリを開きます
+</p>
+
     </button>
 
     <!-- 支払い完了ボタンと戻るボタン -->
@@ -96,11 +98,13 @@
   </div>
 
   <script>
-    /* ====== 設定 ====== */
-    const SHEET_URL =
-      'https://docs.google.com/spreadsheets/d/10SwDaVpPFzcSapTrjaNZYKXdOAz5mPr7qKz5kOQOFb4/gviz/tq?tqx=out:json&sheet=Products';
+  /* ====== 設定 ====== */
+const SHEET_URL =
+  'https://docs.google.com/spreadsheets/d/10SwDaVpPFzcSapTrjaNZYKXdOAz5mPr7qKz5kOQOFb4/gviz/tq?tqx=out:json&sheet=Products';
 
-    /* ====== 要素 ====== */
+/* ▼▼ 追加：Apps ScriptのWebアプリURL ▼▼ */
+const ENDPOINT_URL = 'https://script.google.com/macros/s/https://script.google.com/macros/s/AKfycbzP9AIEeQo4BSgeERsAcKOQDUcFmXph3tSzXNljsA6VIdHyYuS27DJsX0i5PqCPthNm/exec'; // ←発行URLに置換
+
     const grid = document.getElementById("product-grid");
     const totalEl = document.getElementById("total");
     const checkoutBtn = document.getElementById("checkout");
@@ -207,23 +211,43 @@
       document.getElementById(id).classList.add('fade');
     }
 
-    /* 会計へ */
-    function proceedToPayment() {
-      orderSummary.innerHTML = '';
-      let total = 0;
-      Object.values(cart).forEach(i => {
-        if (i.qty > 0) {
-          const sub = i.price * i.qty;
-          total += sub;
-          const row = document.createElement('div');
-          row.className = 'flex justify-between';
-          row.innerHTML = `<span>${i.name} × ${i.qty}</span><span>¥${sub}</span>`;
-          orderSummary.appendChild(row);
-        }
-      });
-      finalTotal.textContent = `¥${total}`;
-      show('screen-pay');
+   /* 会計へ（売上を記録 → 支払い画面へ） */
+async function proceedToPayment() {
+  orderSummary.innerHTML = '';
+  const items = [];
+  let total = 0;
+
+  Object.values(cart).forEach(i => {
+    if (i.qty > 0) {
+      const sub = i.price * i.qty;
+      total += sub;
+      items.push({ id: i.id, name: i.name, qty: i.qty, price: i.price, subtotal: sub });
+
+      const row = document.createElement('div');
+      row.className = 'flex justify-between';
+      row.innerHTML = `<span>${i.name} × ${i.qty}</span><span>¥${sub}</span>`;
+      orderSummary.appendChild(row);
     }
+  });
+
+  finalTotal.textContent = `¥${total}`;
+
+  // 売上記録（失敗してもユーザー体験を止めない）
+  try {
+    const order = {
+      orderId: generateOrderId(),
+      items,
+      total,
+      ts: new Date().toISOString()
+    };
+    await logSale(order);
+  } catch (e) {
+    console.error('logSale failed:', e);
+    // 必要ならエラー表示する場合はここで errorBox を使用
+  }
+
+  show('screen-pay');
+}
 
     /* 支払い完了（デモ） */
     function simulatePayment() {
@@ -266,6 +290,35 @@ document.getElementById("openPayPay")?.addEventListener("click", function(){
     if (Date.now() - start < 1500) window.location.href = fallbackURL;
   }, 1200);
 });
+
+    /* 売上をApps Scriptへ記録 */
+async function logSale(order) {
+  if (!ENDPOINT_URL) throw new Error('ENDPOINT_URL is empty');
+  const res = await fetch(ENDPOINT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(order),
+  });
+  // GASのCORS設定次第でno-corsになる場合あり。その際は例外なく進む。
+  try {
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'unknown error');
+    return data;
+  } catch {
+    // レスポンスをJSONで返さない運用でもUX優先で成功扱いにする
+    return { ok: true };
+  }
+}
+
+/* オーダーID作成（日時＋ランダム） */
+function generateOrderId() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const ts = `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  const rnd = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `ORD-${ts}-${rnd}`;
+}
+
 </script>
 
 </body>
