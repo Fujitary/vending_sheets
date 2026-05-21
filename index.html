@@ -3064,18 +3064,24 @@ function saveMinutesEdit(minuteId) {
   var decisions = (document.getElementById('edit-decisions')||{}).value || '';
   var tasks     = (document.getElementById('edit-tasks')    ||{}).value || '';
   var full      = (document.getElementById('edit-full')     ||{}).value || '';
+  
   if (!fbReady) { alert('Firebase未接続'); return; }
+  
   var now  = new Date();
   var user = USERS[currentUser] || {};
+  var currentData = _minutesDetailData || {};
+  
   var logEntry = {
     userId:   currentUser,
     userName: user.name || currentUser,
     editedAt: now.getFullYear() + '/' + pad(now.getMonth()+1) + '/' + pad(now.getDate())
             + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes())
   };
-  var newLog = ((_minutesDetailData && _minutesDetailData.editLog) ? _minutesDetailData.editLog : []).concat([logEntry]);
-  var newCaseVal = (document.getElementById('edit-caseVal')||{}).value || m.caseVal || '';
-  var newDateVal = (document.getElementById('edit-dateVal')||{}).value || m.dateVal || '';
+  
+  var newLog = (currentData.editLog || []).concat([logEntry]);
+  var newCaseVal = (document.getElementById('edit-caseVal')||{}).value || currentData.caseVal || '';
+  var newDateVal = (document.getElementById('edit-dateVal')||{}).value || currentData.dateVal || '';
+  
   db.collection('minutes').doc(minuteId).update({
     summary: summary, decisions: decisions, tasks: tasks, full: full,
     caseVal: newCaseVal, dateVal: newDateVal,
@@ -3083,9 +3089,12 @@ function saveMinutesEdit(minuteId) {
   }).then(function() {
     Object.assign(_minutesDetailData, { summary: summary, decisions: decisions, tasks: tasks, full: full, caseVal: newCaseVal, dateVal: newDateVal, editLog: newLog });
     renderMinutesDetailModal(_minutesDetailData, false);
-    clearCache('minutes'); loadSavedMinutes();
+    clearCache('minutes'); 
+    loadSavedMinutes();
     alert('✓ 保存しました');
-  }).catch(function(e) { alert('保存失敗: ' + e.message); });
+  }).catch(function(e) { 
+    alert('保存失敗: ' + e.message); 
+  });
 }
 
 /* ===== ▼ 権限管理 ===== */
