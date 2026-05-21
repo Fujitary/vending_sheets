@@ -5666,11 +5666,14 @@ function parseGeminiResponse(text, fallbackCase) {
   var parsed = null;
 
   // そのままJSONパース試行
-  try { parsed = JSON.parse(clean); }
-  catch(e1) {
+  try { 
+    parsed = JSON.parse(clean); 
+  } catch(e1) {
     // { } で囲まれた部分を抽出
     var m = clean.match(/\{[\s\S]*\}/);
-    if (m) { try { parsed = JSON.parse(m[0]); } catch(e2) {} }
+    if (m) { 
+      try { parsed = JSON.parse(m[0]); } catch(e2) {} 
+    }
   }
 
   if (!parsed) {
@@ -5701,7 +5704,6 @@ function parseGeminiResponse(text, fallbackCase) {
 
   // fullが空または summary と同じ場合の処理
   if (!parsed.full || parsed.full === parsed.summary) {
-    // full が summary と同じならJSON全体が混入している可能性
     if (parsed.full === parsed.summary) {
       console.warn('[Gemini] full === summary の異常検出。fullをリセット。');
       parsed.full = '（文字起こし全文を取得できませんでした。音声が短いか、APIの出力制限に達した可能性があります）';
