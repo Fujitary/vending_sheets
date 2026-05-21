@@ -3099,7 +3099,7 @@ function renderPermCards() {
       p = Object.assign({}, ROLE_DEFAULTS[u.role] || ROLE_DEFAULTS['field']);
       PERMISSIONS[key] = p;
     }
-    var isAdmin = u.email === ADMIN_EMAIL; // ADMIN_EMAILのみロック（ロール変更後の再ロックを防ぐ）
+    var isAdmin = u.email === ADMIN_EMAIL;
     var onCount = PERM_DEFS.filter(function(d){ return p[d.key]; }).length;
     var roleColors = { field:'#1D9E60', office:'#1D9E60', admin:'#D4537E' };
     var roleBg = { field:'#0A4040', office:'#CCFBF1', admin:'#FCE7F3' };
@@ -3107,12 +3107,14 @@ function renderPermCards() {
     var rBg = roleBg[u.role] || '#F5F7FA';
 
     var secHtml = '<div class="perm-section-label">ロール（一括変更）</div>'
-      + '<select class="role-select" id="role-sel-' + key + '" onchange="changeRole(\'' + key + '\',this.value)"' + (isAdmin?' disabled':'') + '>'
-      + ['field','office','admin'].map(function(r){
-          var labels = { field:'現場メンバー', office:'事務局', admin:'管理者' };
-          return '<option value="' + r + '"' + (u.role===r?' selected':'') + '>' + labels[r] + '</option>';
-        }).join('')
-      + '</select>';
+      + '<select class="role-select" id="role-sel-' + key + '" onchange="changeRole(\'' + key + '\',this.value)"' + (isAdmin?' disabled':'') + '>';
+      
+    secHtml += ['field','office','admin'].map(function(r){
+        var labels = { field:'現場メンバー', office:'事務局', admin:'管理者' };
+        return '<option value="' + r + '"' + (u.role===r?' selected':'') + '>' + labels[r] + '</option>';
+      }).join('');
+      
+    secHtml += '</select>';
 
     sections.forEach(function(sec) {
       var items = PERM_DEFS.filter(function(d){ return d.section===sec; });
